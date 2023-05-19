@@ -1,7 +1,10 @@
 "use client";
-import { AnimatePresence, motion } from "framer-motion";
 
 import React from "react";
+import {
+  containerVariants,
+  itemVariants,
+} from "@/lib/motion-variants/variants";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,6 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 import {
   Select,
@@ -45,34 +49,44 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { motion } from "framer-motion";
 
 import { useToast } from "@/components/ui/use-toast";
-import { BookOpen, ChevronDown, Trash2 } from "lucide-react";
+import { BookOpen, ChevronDown, HelpCircle, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/vent/navbar";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
 
 interface TextItem {
   text: string;
   id: number;
-  size: number; // Add this line
-  createdTime: string; // changed from Date to string
+  size: number;
+  createdTime: string;
+  categories: string[];
 }
 
 export default function Home() {
   let { toast } = useToast();
 
-  let [isOpen, setIsOpen] = React.useState<boolean>(false);
+  let [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
   let [inputText, setInputText] = React.useState<string>("");
   let [savedTexts, setSavedTexts] = React.useState<TextItem[]>([]);
+  let [categories, setCategories] = React.useState<string[]>([]);
   let [remainingSpace, setRemainingSpace] = React.useState<number>(0);
   let [remainingStoragePercentage, setRemainingStoragePercentage] =
     React.useState<number>(100);
-  const variants = {
-    open: { height: "auto" },
-    collapsed: { height: "2rem" }, // Adjust this to match the initial height of your list items
-  };
+
   React.useEffect(() => {
     let storedTexts = localStorage.getItem("texts");
 
@@ -98,11 +112,17 @@ export default function Home() {
         id: new Date().getTime(),
         createdTime: formatCurrentTime(),
         size,
+        categories, // New line
       },
     ];
+
     localStorage.setItem("texts", JSON.stringify(newTexts));
     setSavedTexts(newTexts);
     setInputText("");
+    setCategories([]); // Clear categories input after saving
+
+    // console log what is saved
+    console.log(newTexts);
 
     toast({
       title: "Success!",
@@ -181,124 +201,201 @@ export default function Home() {
               <Input type="email" placeholder="Email" />
             </div>
 
-            <Dialog>
-              <DialogTrigger asChild>
+            <Sheet>
+              <SheetTrigger asChild>
                 <Button variant="outline" className="w-full mt-6">
                   <span className="sr-only">Add a Thought</span>
                   <span className="text-white">Add a Thought</span>
                 </Button>
-              </DialogTrigger>
-
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="text-white">
+              </SheetTrigger>
+              <SheetContent position="right" size="sm">
+                <SheetHeader>
+                  <SheetTitle>
                     What&apos;s on your mind?
-                  </DialogTitle>
-                </DialogHeader>
-                <Textarea
-                  placeholder="This can be anything on your mind. A link to a website, an image, or just plain text."
-                  className="text-white"
-                  value={inputText}
-                  //   @ts-ignore
-                  onChange={handleInputChange}
-                  //   onKeyDown={(e) => {
-                  //     if (e.key === "Enter") {
-                  //       saveToLocalStorage(e);
-                  //     }
-                  //   }}
-                />
+                    {/*  */}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <span className="text-red-500">*</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>required</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="grid gap-4 py-4">
+                  <Textarea
+                    placeholder="This can be anything on your mind. A link to a website, an image, or just plain text."
+                    className="text-white"
+                    value={inputText}
+                    //   @ts-ignore
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="grid gap-4 py-4">
+                  <div className="flex justify-between">
+                    <Label
+                      htmlFor="category"
+                      className="text-white items-center justify-center flex"
+                    >
+                      Categorize entry? (optional)
+                    </Label>
 
-                <Button
-                  onClick={saveToLocalStorage}
-                  variant="outline"
-                  className="w-full mt-2"
-                >
-                  <span className="sr-only">Add a Thought</span>
-                  <span className="text-white">Add Thought</span>
-                </Button>
-              </DialogContent>
-            </Dialog>
+                    {/* <HelpCircle className="text-white" /> */}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <HelpCircle className="text-white" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>press enter to add multiple categories</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  {/* category input */}
+                  <Input
+                    type="text"
+                    id="category"
+                    placeholder="ex. Design"
+                    autoComplete="off"
+                    className="text-white"
+                    onKeyDown={(e) => {
+                      const target = e.target as HTMLInputElement; // cast e.target to HTMLInputElement
+                      if (e.key === "Enter" && target.value.trim() !== "") {
+                        setCategories([...categories, target.value]);
+                        target.value = "";
+                        e.preventDefault(); // To prevent form submission on pressing 'Enter'
+                      }
+                    }}
+                  />
+                </div>
+                <div className="flex flex-wrap">
+                  <div className="flex flex-wrap">
+                    {categories.map((category, index) => (
+                      <Badge
+                        key={index}
+                        variant="default"
+                        className="mr-2 mb-2 cursor-pointer"
+                        onClick={() => {
+                          setCategories(
+                            categories.filter((cat) => cat !== category)
+                          );
+                        }}
+                      >
+                        {category}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <SheetFooter>
+                  <Button
+                    onClick={saveToLocalStorage}
+                    disabled={inputText.trim() === ""}
+                    variant="outline"
+                    className="w-full mt-4"
+                  >
+                    <span className="sr-only">Add a Thought</span>
+                    <span className="text-white">Add Thought</span>
+                  </Button>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
           </CardContent>
         </Card>
 
-        <ul role="list" className="space-y-2 mt-12 mb-24">
-          {savedTexts.length > 0 ? (
-            savedTexts.map((textItem, index) => (
-              <li key={textItem.id}>
-                <div className="px-4 border border-[#333] hover:bg-[#111] transition-all duration-200 rounded-md relative flex justify-between items-center gap-x-6 py-2">
-                  <div className="flex gap-x-4">
-                    {/* <div className="bg-gray-200 dark:bg-[#333] w-10 h-10 animate-pulse rounded-md" /> */}
-                    <div className="min-w-0 flex-auto">
-                      <p className="mt-1 flex text-xs leading-5 text-white text-justify">
-                        <span className="relative truncate max-w-sm hover:underline">
-                          {textItem.text}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-x-2">
-                    <div className="hidden sm:flex sm:flex-col sm:items-end">
-                      <p className="mt-1 text-xs leading-5 text-[#999]">
-                        Created{" "}
-                        <time>
-                          {textItem.createdTime
-                            ? textItem.createdTime.toLocaleString()
-                            : ""}
-                        </time>
-                      </p>
-                    </div>
-                    {/* <Button variant="ghost" size="sm">
-                      <BookOpen
-                        className="h-5 w-5 flex-none text-gray-400 cursor-pointer z-30"
-                        aria-hidden="true"
-                      />
-                    </Button> */}
-                    <div className="flex items-center space-x-2">
-                      <AlertDialog>
-                        <AlertDialogTrigger>
-                          <div className="flex items-center">
-                            <Button variant="outline" size="xs">
-                              <BookOpen
+        <motion.ul
+          role="list"
+          className="space-y-2 mt-12 mb-24"
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+        >
+          {" "}
+          {savedTexts.length > 0
+            ? savedTexts.map((textItem, index) => (
+                <motion.li
+                  key={textItem.id}
+                  onMouseEnter={() => setHoveredIndex(index)}
+                  onMouseLeave={() => setHoveredIndex(null)}
+                  variants={itemVariants}
+                  style={{
+                    transition: "all 0.2s ease",
+                    filter:
+                      hoveredIndex !== null && hoveredIndex !== index
+                        ? "blur(3px)"
+                        : "",
+                  }}
+                >
+                  <AlertDialog>
+                    <AlertDialogTrigger className="w-full">
+                      <div className="px-4 border border-[#333] hover:bg-[#111] transition-all duration-200 rounded-md relative flex justify-between items-center gap-x-6 py-2">
+                        <div className="flex gap-x-4">
+                          <div className="min-w-0 flex-auto">
+                            <p className="mt-1 flex text-xs leading-5 text-white text-justify">
+                              <span className="relative truncate max-w-sm hover:underline">
+                                {textItem.text}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-x-2">
+                          <div className="hidden sm:flex sm:flex-col sm:items-end">
+                            <p className="mt-1 text-xs leading-5 text-[#999]">
+                              Created{" "}
+                              <time>
+                                {textItem.createdTime
+                                  ? textItem.createdTime.toLocaleString()
+                                  : ""}
+                              </time>
+                            </p>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="default" className="mr-2">
+                              {textItem.categories &&
+                              textItem.categories.length > 0
+                                ? textItem.categories[0]
+                                : "Main"}
+                            </Badge>
+
+                            <Button variant="ghost" size="xs">
+                              <Trash2
                                 className="h-5 w-5 flex-none text-gray-400 cursor-pointer z-30"
+                                onClick={() => deleteTextItem(textItem.id)}
                                 aria-hidden="true"
                               />
                             </Button>
                           </div>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle className="text-white">
-                              Bytes used for this bookmark: {textItem.size}
-                            </AlertDialogTitle>
-                            <AlertDialogDescription className="text-[#999]">
-                              {textItem.text}
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction>Continue</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-
-                      <Button variant="ghost" size="xs">
-                        <Trash2
-                          className="h-5 w-5 flex-none text-gray-400 cursor-pointer z-30"
-                          onClick={() => deleteTextItem(textItem.id)}
-                          aria-hidden="true"
-                        />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </li>
-            ))
-          ) : (
-            <h1 className="text-center text-2xl font-semibold">
-              No bookmarks yet. You should change that!
+                        </div>
+                      </div>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-white">
+                          Bytes used for this bookmark: {textItem.size}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-[#999]">
+                          {textItem.text}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction>Continue</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </motion.li>
+              ))
+            : null}
+          {/* No songs */}
+          {savedTexts.length === 0 && (
+            <h1 className="text-white text-center mt-12">
+              Your thoughts will appear here
             </h1>
           )}
-
           <div className="fixed bottom-0 left-0 right-0 p-4 z-50 bg-white">
             <div className="mx-auto max-w-2xl">
               <TooltipProvider>
@@ -320,7 +417,7 @@ export default function Home() {
               </TooltipProvider>
             </div>
           </div>
-        </ul>
+        </motion.ul>
       </div>
     </div>
   );

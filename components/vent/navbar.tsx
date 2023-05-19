@@ -5,7 +5,7 @@ export default function Navbar() {
   return (
     <header className="bg-black z-50">
       <nav
-        className="flex items-center justify-between p-6 lg:px-8"
+        className="flex items-center justify-between p-6 lg:px-8 z-50"
         aria-label="Global"
       >
         <div className="flex lg:flex-1">
