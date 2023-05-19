@@ -60,6 +60,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
+import EntriesSkeleton from "@/components/skeletons/entries-skeleton";
 
 interface TextItem {
   text: string;
@@ -350,6 +351,12 @@ export default function Home() {
           </CardContent>
         </Card>
 
+        {savedTexts.length === 0 && (
+          <h1 className="text-white text-center mt-12">
+            Your thoughts will appear here
+          </h1>
+        )}
+
         <motion.ul
           role="list"
           className="space-y-2 mt-12 mb-24"
@@ -357,85 +364,83 @@ export default function Home() {
           initial="hidden"
           animate="show"
         >
-          {filteredTexts.length > 0
-            ? filteredTexts.map((textItem, index) => (
-                <motion.li
-                  key={textItem.id}
-                  onMouseEnter={() => setHoveredIndex(index)}
-                  onMouseLeave={() => setHoveredIndex(null)}
-                  variants={itemVariants}
-                  style={{
-                    transition: "all 0.2s ease",
-                    filter:
-                      hoveredIndex !== null && hoveredIndex !== index
-                        ? "blur(3px)"
-                        : "",
-                  }}
-                >
-                  <AlertDialog>
-                    <AlertDialogTrigger className="w-full">
-                      <div className="px-4 border border-[#333] hover:bg-[#111] transition-all duration-200 rounded-md relative flex justify-between items-center gap-x-6 py-2">
-                        <div className="flex flex-col gap-x-4">
-                          <div className="min-w-0 flex-auto">
-                            <p className="mt-1 flex text-xs leading-5 text-white text-justify">
-                              <span className="relative truncate max-w-sm hover:underline">
-                                {textItem.text}
-                              </span>
-                            </p>
-                          </div>
-                          <p className="text-left text-xs leading-5 text-[#999]">
-                            Created{" "}
-                            <time>
-                              {textItem.createdTime
-                                ? textItem.createdTime.toLocaleString()
-                                : ""}
-                            </time>
+          {filteredTexts.length > 0 ? (
+            filteredTexts.map((textItem, index) => (
+              <motion.li
+                key={textItem.id}
+                onMouseEnter={() => setHoveredIndex(index)}
+                onMouseLeave={() => setHoveredIndex(null)}
+                variants={itemVariants}
+                style={{
+                  transition: "all 0.2s ease",
+                  filter:
+                    hoveredIndex !== null && hoveredIndex !== index
+                      ? "blur(3px)"
+                      : "",
+                }}
+              >
+                <AlertDialog>
+                  <AlertDialogTrigger className="w-full">
+                    <div className="px-4 border border-[#333] hover:bg-[#111] transition-all duration-200 rounded-md relative flex justify-between items-center gap-x-6 py-2">
+                      <div className="flex flex-col gap-x-4">
+                        <div className="min-w-0 flex-auto">
+                          <p className="mt-1 flex text-xs leading-5 text-white text-justify">
+                            <span className="relative truncate max-w-sm hover:underline">
+                              {textItem.text}
+                            </span>
                           </p>
                         </div>
-                        <div className="flex items-center gap-x-2">
-                          <div className="flex items-center space-x-2">
-                            <Badge variant="default" className="mr-2">
-                              {textItem.categories &&
-                              textItem.categories.length > 0
-                                ? textItem.categories[0]
-                                : "Main"}
-                            </Badge>
+                        <p className="text-left text-xs leading-5 text-[#999]">
+                          Created{" "}
+                          <time>
+                            {textItem.createdTime
+                              ? textItem.createdTime.toLocaleString()
+                              : ""}
+                          </time>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-x-2">
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="default" className="mr-2">
+                            {textItem.categories &&
+                            textItem.categories.length > 0
+                              ? textItem.categories[0]
+                              : "Main"}
+                          </Badge>
 
-                            <Button variant="ghost">
-                              <Trash2
-                                className="h-5 w-5 flex-none text-gray-400 cursor-pointer z-30"
-                                onClick={() => deleteTextItem(textItem.id)}
-                                aria-hidden="true"
-                              />
-                            </Button>
-                          </div>
+                          <Button variant="ghost">
+                            <Trash2
+                              className="h-5 w-5 flex-none text-gray-400 cursor-pointer z-30"
+                              onClick={() => deleteTextItem(textItem.id)}
+                              aria-hidden="true"
+                            />
+                          </Button>
                         </div>
                       </div>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="text-white">
-                          Bytes used for this bookmark: {textItem.size}
-                        </AlertDialogTitle>
-                        <AlertDialogDescription className="text-[#999]">
-                          {textItem.text}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction>Continue</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </motion.li>
-              ))
-            : null}
-          {/* No songs */}
-          {savedTexts.length === 0 && (
-            <h1 className="text-white text-center mt-12">
-              Your thoughts will appear here
-            </h1>
+                    </div>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-white">
+                        Bytes used for this bookmark: {textItem.size}
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="text-[#999]">
+                        {textItem.text}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction>Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </motion.li>
+            ))
+          ) : (
+            <EntriesSkeleton />
           )}
+          {/* No songs */}
+
           <div className="fixed bottom-0 left-0 right-0 p-4 z-50 bg-black border-t border-[#333]">
             <div className="mx-auto max-w-2xl">
               <TooltipProvider>
