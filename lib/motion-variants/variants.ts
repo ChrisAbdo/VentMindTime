@@ -3,7 +3,7 @@ export const containerVariants = {
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1, // delay between child animations
+      staggerChildren: 0.05, // delay between child animations
     },
   },
 };

@@ -41,18 +41,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+
 import { motion } from "framer-motion";
 
 import { useToast } from "@/components/ui/use-toast";
-import { BookOpen, ChevronDown, HelpCircle, Trash2 } from "lucide-react";
+import { HelpCircle, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/vent/navbar";
@@ -83,9 +76,28 @@ export default function Home() {
   let [inputText, setInputText] = React.useState<string>("");
   let [savedTexts, setSavedTexts] = React.useState<TextItem[]>([]);
   let [categories, setCategories] = React.useState<string[]>([]);
+  let [currentCategories, setCurrentCategories] = React.useState<string[]>([]);
   let [remainingSpace, setRemainingSpace] = React.useState<number>(0);
   let [remainingStoragePercentage, setRemainingStoragePercentage] =
     React.useState<number>(100);
+
+  let [selectedCategory, setSelectedCategory] = React.useState<string>("");
+  let [query, setQuery] = React.useState<string>("");
+  const filteredTexts = savedTexts.filter((textItem) => {
+    if (
+      query !== "" &&
+      !textItem.text.toLowerCase().includes(query.toLowerCase())
+    ) {
+      return false;
+    }
+    if (
+      selectedCategory !== "" &&
+      !textItem.categories.includes(selectedCategory)
+    ) {
+      return false;
+    }
+    return true;
+  });
 
   React.useEffect(() => {
     let storedTexts = localStorage.getItem("texts");
@@ -95,6 +107,16 @@ export default function Home() {
     }
     logRemainingLocalStorageSpace();
   }, []);
+
+  React.useEffect(() => {
+    const allCategories = new Set<string>();
+    savedTexts.forEach((textItem) => {
+      textItem.categories.forEach((category) => {
+        allCategories.add(category);
+      });
+    });
+    setCategories(Array.from(allCategories));
+  }, [savedTexts]);
 
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>): void {
     setInputText(event.target.value);
@@ -112,7 +134,7 @@ export default function Home() {
         id: new Date().getTime(),
         createdTime: formatCurrentTime(),
         size,
-        categories, // New line
+        categories: currentCategories, // use currentCategories here
       },
     ];
 
@@ -128,6 +150,7 @@ export default function Home() {
       title: "Success!",
       description: "Your bookmark has been saved.",
     });
+    setCurrentCategories([]); // clear currentCategories
 
     logRemainingLocalStorageSpace();
   }
@@ -187,18 +210,32 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <div className="flex justify-between space-x-12">
-              <Select>
+              <Select onValueChange={(value) => setSelectedCategory(value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Theme" />
+                  <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="light">Light</SelectItem>
-                  <SelectItem value="dark">Dark</SelectItem>
-                  <SelectItem value="system">System</SelectItem>
+                  <SelectItem value="" onSelect={() => setSelectedCategory("")}>
+                    All
+                  </SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem
+                      key={category}
+                      value={category}
+                      onSelect={() => setSelectedCategory(category)}
+                    >
+                      {category}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
-              <Input type="email" placeholder="Email" />
+              <Input
+                type="text"
+                autoComplete="off"
+                placeholder="Search entries"
+                onChange={(event) => setQuery(event.target.value)}
+              />
             </div>
 
             <Sheet>
@@ -265,7 +302,10 @@ export default function Home() {
                     onKeyDown={(e) => {
                       const target = e.target as HTMLInputElement; // cast e.target to HTMLInputElement
                       if (e.key === "Enter" && target.value.trim() !== "") {
-                        setCategories([...categories, target.value]);
+                        setCurrentCategories([
+                          ...currentCategories,
+                          target.value,
+                        ]);
                         target.value = "";
                         e.preventDefault(); // To prevent form submission on pressing 'Enter'
                       }
@@ -274,14 +314,14 @@ export default function Home() {
                 </div>
                 <div className="flex flex-wrap">
                   <div className="flex flex-wrap">
-                    {categories.map((category, index) => (
+                    {currentCategories.map((category, index) => (
                       <Badge
                         key={index}
                         variant="default"
                         className="mr-2 mb-2 cursor-pointer"
                         onClick={() => {
-                          setCategories(
-                            categories.filter((cat) => cat !== category)
+                          setCurrentCategories(
+                            currentCategories.filter((cat) => cat !== category)
                           );
                         }}
                       >
@@ -292,7 +332,11 @@ export default function Home() {
                 </div>
                 <SheetFooter>
                   <Button
-                    onClick={saveToLocalStorage}
+                    onClick={async (e) => {
+                      await saveToLocalStorage(e);
+                      setCategories([]);
+                      setInputText("");
+                    }}
                     disabled={inputText.trim() === ""}
                     variant="outline"
                     className="w-full mt-4"
@@ -313,9 +357,8 @@ export default function Home() {
           initial="hidden"
           animate="show"
         >
-          {" "}
-          {savedTexts.length > 0
-            ? savedTexts.map((textItem, index) => (
+          {filteredTexts.length > 0
+            ? filteredTexts.map((textItem, index) => (
                 <motion.li
                   key={textItem.id}
                   onMouseEnter={() => setHoveredIndex(index)}
@@ -332,7 +375,7 @@ export default function Home() {
                   <AlertDialog>
                     <AlertDialogTrigger className="w-full">
                       <div className="px-4 border border-[#333] hover:bg-[#111] transition-all duration-200 rounded-md relative flex justify-between items-center gap-x-6 py-2">
-                        <div className="flex gap-x-4">
+                        <div className="flex flex-col gap-x-4">
                           <div className="min-w-0 flex-auto">
                             <p className="mt-1 flex text-xs leading-5 text-white text-justify">
                               <span className="relative truncate max-w-sm hover:underline">
@@ -340,19 +383,16 @@ export default function Home() {
                               </span>
                             </p>
                           </div>
+                          <p className="text-left text-xs leading-5 text-[#999]">
+                            Created{" "}
+                            <time>
+                              {textItem.createdTime
+                                ? textItem.createdTime.toLocaleString()
+                                : ""}
+                            </time>
+                          </p>
                         </div>
                         <div className="flex items-center gap-x-2">
-                          <div className="hidden sm:flex sm:flex-col sm:items-end">
-                            <p className="mt-1 text-xs leading-5 text-[#999]">
-                              Created{" "}
-                              <time>
-                                {textItem.createdTime
-                                  ? textItem.createdTime.toLocaleString()
-                                  : ""}
-                              </time>
-                            </p>
-                          </div>
-
                           <div className="flex items-center space-x-2">
                             <Badge variant="default" className="mr-2">
                               {textItem.categories &&
@@ -361,7 +401,7 @@ export default function Home() {
                                 : "Main"}
                             </Badge>
 
-                            <Button variant="ghost" size="xs">
+                            <Button variant="ghost">
                               <Trash2
                                 className="h-5 w-5 flex-none text-gray-400 cursor-pointer z-30"
                                 onClick={() => deleteTextItem(textItem.id)}
@@ -396,7 +436,7 @@ export default function Home() {
               Your thoughts will appear here
             </h1>
           )}
-          <div className="fixed bottom-0 left-0 right-0 p-4 z-50 bg-white">
+          <div className="fixed bottom-0 left-0 right-0 p-4 z-50 bg-black border-t border-[#333]">
             <div className="mx-auto max-w-2xl">
               <TooltipProvider>
                 <Tooltip>
